@@ -95,7 +95,6 @@ class Sequence:
         data_directories = subdirectories(self._directory, fs)
         for dd in data_directories:
             if dd.endswith('lidar'):
-                print(dd)
                 self._lidar = Lidar(dd)
             elif dd.endswith('camera'):
                 self._camera = {}
