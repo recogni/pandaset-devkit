@@ -228,7 +228,6 @@ class Lidar(Sensor):
         self._sensor_id = sensor_id
 
     def _load_data_file(self, fp: str) -> DataFrame:
-        print(fp)
         return pd.read_pickle(fp)
 
 
