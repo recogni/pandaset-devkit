@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 from typing import overload, List, Dict
-
+import fsspec
 from .sequence import Sequence
 from .utils import subdirectories
 
@@ -29,7 +29,8 @@ class DataSet:
 
     def _load_sequences(self) -> None:
         self._sequences = {}
-        sequence_directories = subdirectories(self._directory)
+        fs, _ = fsspec.core.url_to_fs(self._directory)
+        sequence_directories = subdirectories(self._directory, fs)
         for sd in sequence_directories:
             seq_id = sd.split('/')[-1].split('\\')[-1]
             self._sequences[seq_id] = Sequence(sd)

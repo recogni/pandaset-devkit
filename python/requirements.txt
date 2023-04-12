@@ -56,3 +56,5 @@ webencodings>=0.5.1
 widgetsnbextension>=3.5.1
 zipp>=3.1.0
 transforms3d>=0.3.1
+fsspec
+gcsfs

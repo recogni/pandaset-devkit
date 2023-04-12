@@ -4,7 +4,7 @@ import json
 import os
 from abc import ABCMeta, abstractmethod
 from typing import overload, List, TypeVar, Dict
-
+import fsspec
 import pandas as pd
 
 T = TypeVar('T')
@@ -58,8 +58,8 @@ class Annotation:
         self._load_data_structure()
 
     def _load_data_structure(self) -> None:
-        self._data_structure = sorted(
-            glob.glob(f'{self._directory}/*.{self._data_file_extension}'))
+        fs, _ = fsspec.core.url_to_fs(self._directory)
+        self._data_structure = [fs.protocol[0] + "://" + f for f in sorted(fs.glob(f'{self._directory}/*.{self._data_file_extension}'))]
 
     def load(self) -> None:
         """Loads all annotation files from disk into memory.
@@ -253,14 +253,16 @@ class SemanticSegmentation(Annotation):
 
     def _load_classes_structure(self) -> None:
         classes_file = f'{self._directory}/classes.json'
-        if os.path.isfile(classes_file):
+        fs, _ = fsspec.core.url_to_fs(classes_file)
+        if fs.isfile(classes_file):
             self._classes_structure = classes_file
 
     def _load_data_file(self, fp: str) -> None:
         return pd.read_pickle(fp)
 
     def _load_classes(self) -> None:
-        with open(self._classes_structure, 'r') as f:
+        fs, _ = fsspec.core.url_to_fs(self._classes_structure)
+        with fs.open(self._classes_structure, 'r') as f:
             file_data = json.load(f)
             self._classes = file_data
 

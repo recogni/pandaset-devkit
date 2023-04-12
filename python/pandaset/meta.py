@@ -3,7 +3,7 @@ import json
 import os.path
 from abc import ABCMeta, abstractmethod
 from typing import TypeVar, List, overload, Dict
-
+import fsspec
 T = TypeVar('T')
 
 
@@ -60,12 +60,14 @@ class Meta:
 
     def _load_data_structure(self) -> None:
         meta_file = f'{self._directory}/{self._filename}'
-        if os.path.isfile(meta_file):
+        fs, _ = fsspec.core.url_to_fs(meta_file)
+        if fs.isfile(meta_file):
             self._data_structure = meta_file
 
     def _load_data(self) -> None:
         self._data = []
-        with open(self._data_structure, 'r') as f:
+        fs, _ = fsspec.core.url_to_fs(self._data_structure)
+        with fs.open(self._data_structure, 'r') as f:
             file_data = json.load(f)
             for entry in file_data:
                 self._data.append(entry)

@@ -8,7 +8,7 @@ from .meta import Timestamps
 from .sensors import Camera
 from .sensors import Lidar
 from .utils import subdirectories
-
+import fsspec
 
 class Sequence:
     """Provides all sensor and annotations for a single sequence.
@@ -91,14 +91,15 @@ class Sequence:
         self._load_data_structure()
 
     def _load_data_structure(self) -> None:
-        data_directories = subdirectories(self._directory)
-
+        fs, _ = fsspec.core.url_to_fs(self._directory)
+        data_directories = subdirectories(self._directory, fs)
         for dd in data_directories:
             if dd.endswith('lidar'):
+                print(dd)
                 self._lidar = Lidar(dd)
             elif dd.endswith('camera'):
                 self._camera = {}
-                camera_directories = subdirectories(dd)
+                camera_directories = subdirectories(dd, fs)
                 for cd in camera_directories:
                     camera_name = cd.split('/')[-1].split('\\')[-1]
                     self._camera[camera_name] = Camera(cd)
@@ -106,7 +107,7 @@ class Sequence:
                 self._gps = GPS(dd)
                 self._timestamps = Timestamps(dd)
             elif dd.endswith('annotations'):
-                annotation_directories = subdirectories(dd)
+                annotation_directories = subdirectories(dd, fs)
                 for ad in annotation_directories:
                     if ad.endswith('cuboids'):
                         self._cuboids = Cuboids(ad)

@@ -9,6 +9,7 @@ import pandas as pd
 from PIL import Image
 from PIL.JpegImagePlugin import JpegImageFile
 from pandas.core.frame import DataFrame
+import fsspec
 
 T = TypeVar('T')
 
@@ -85,17 +86,19 @@ class Sensor:
         self._load_timestamps_structure()
 
     def _load_data_structure(self) -> None:
-        self._data_structure = sorted(
-            glob.glob(f'{self._directory}/*.{self._data_file_extension}'))
+        fs, _ = fsspec.core.url_to_fs(self._directory)
+        self._data_structure = [fs.protocol[0] + "://" + f for f in sorted(fs.glob(f'{self._directory}/*.{self._data_file_extension}'))]
 
     def _load_poses_structure(self) -> None:
         poses_file = f'{self._directory}/poses.json'
-        if os.path.isfile(poses_file):
+        fs, _ = fsspec.core.url_to_fs(poses_file)
+        if fs.isfile(poses_file):
             self._poses_structure = poses_file
 
     def _load_timestamps_structure(self) -> None:
         timestamps_file = f'{self._directory}/timestamps.json'
-        if os.path.isfile(timestamps_file):
+        fs, _ = fsspec.core.url_to_fs(timestamps_file)
+        if fs.isfile(timestamps_file):
             self._timestamps_structure = timestamps_file
 
     def load(self) -> None:
@@ -114,14 +117,16 @@ class Sensor:
 
     def _load_poses(self) -> None:
         self._poses = []
-        with open(self._poses_structure, 'r') as f:
+        fs, _ = fsspec.core.url_to_fs(self._poses_structure)
+        with fs.open(self._poses_structure, 'r') as f:
             file_data = json.load(f)
             for entry in file_data:
                 self._poses.append(entry)
 
     def _load_timestamps(self) -> None:
         self._timestamps = []
-        with open(self._timestamps_structure, 'r') as f:
+        fs, _ = fsspec.core.url_to_fs(self._timestamps_structure)
+        with fs.open(self._timestamps_structure, 'r') as f:
             file_data = json.load(f)
             for entry in file_data:
                 self._timestamps.append(entry)
@@ -223,6 +228,7 @@ class Lidar(Sensor):
         self._sensor_id = sensor_id
 
     def _load_data_file(self, fp: str) -> DataFrame:
+        print(fp)
         return pd.read_pickle(fp)
 
 
@@ -309,18 +315,21 @@ class Camera(Sensor):
 
     def _load_intrinsics_structure(self) -> None:
         intrinsics_file = f'{self._directory}/intrinsics.json'
-        if os.path.isfile(intrinsics_file):
+        fs, _ = fsspec.core.url_to_fs(intrinsics_file)
+        if fs.isfile(intrinsics_file):
             self._intrinsics_structure = intrinsics_file
 
     def _load_data_file(self, fp: str) -> JpegImageFile:
         # solve this bug: https://github.com/python-pillow/Pillow/issues/1237
-        img = Image.open(fp)
-        image = img.copy()
-        img.close()
+        fs, _ = fsspec.core.url_to_fs(fp)
+        with fs.open(fp, 'rb') as f:
+            img = Image.open(f)
+            image = img.copy()
         return image
     
     def _load_intrinsics(self) -> None:
-        with open(self._intrinsics_structure, 'r') as f:
+        fs, _ = fsspec.core.url_to_fs(self._intrinsics_structure)
+        with fs.open(self._intrinsics_structure, 'r') as f:
             file_data = json.load(f)
             self._intrinsics = Intrinsics(fx=file_data['fx'],
                                           fy=file_data['fy'],
